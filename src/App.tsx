@@ -11,6 +11,7 @@ import Clients from "./pages/Clients";
 import Equipment from "./pages/Equipment";
 import Parts from "./pages/Parts";
 import Reports from "./pages/Reports";
+import ClientDetails from "./pages/ClientDetails";
 
 const App = () => {
   return (
@@ -25,6 +26,7 @@ const App = () => {
           <Route path={ROUTES.ADD_SUPPLIER} element={<AddSupplier />} />
           <Route path={ROUTES.ADD_SERVICE_REPORT} element={<AddReport />} />
           <Route path={ROUTES.CLIENTS} element={<Clients />} />
+          <Route path={`${ROUTES.CLIENTS}/:id`} element={<ClientDetails />} />
           <Route path={ROUTES.EQUIPMENT} element={<Equipment />} />
           <Route path={ROUTES.PARTS} element={<Parts />} />
           <Route path={ROUTES.REPORTS} element={<Reports />} />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,78 +32,79 @@ import {
 import { Link } from "react-router";
 import { ROUTES } from "@/Constants";
 
+// Updated interface to match API response
 interface IClient {
-  id: string;
+  clientId: number;
   name: string;
   email: string;
   address: string;
-  contractNumber: string;
-  contractType: "garantie" | "contract";
-  creationDate: string;
+  createdAt: string;
   isActive: boolean;
+  warrantyContract: string;
+  contractNumber: string;
 }
 
 const ClientList: React.FC = () => {
-  // Updated client data with isActive field
-  const defaultClients: IClient[] = [
-    {
-      id: "1",
-      name: "SC Example Tech SRL",
-      email: "contact@exampletech.ro",
-      address: "Str. Victoriei nr. 24, București",
-      contractNumber: "CT-2023-001",
-      contractType: "garantie",
-      creationDate: "2023-07-15",
-      isActive: true,
-    },
-    {
-      id: "2",
-      name: "Petrica Ionescu PFA",
-      email: "petrica@example.com",
-      address: "Str. Libertății nr. 10, Cluj-Napoca",
-      contractNumber: "CT-2023-002",
-      contractType: "contract",
-      creationDate: "2023-08-22",
-      isActive: true,
-    },
-    {
-      id: "3",
-      name: "Mega Engineering SRL",
-      email: "office@megaeng.ro",
-      address: "Bd. Timișoara nr. 55, București",
-      contractNumber: "CT-2023-003",
-      contractType: "garantie",
-      creationDate: "2023-09-05",
-      isActive: false,
-    },
-    {
-      id: "4",
-      name: "Construct Solutions SA",
-      email: "info@constructsolutions.ro",
-      address: "Str. Aviatorilor nr. 32, Iași",
-      contractNumber: "CT-2023-004",
-      contractType: "contract",
-      creationDate: "2023-10-18",
-      isActive: true,
-    },
-    {
-      id: "5",
-      name: "Medical Services Group",
-      email: "office@medicalservices.ro",
-      address: "Bd. Carol I nr. 12, Brașov",
-      contractNumber: "CT-2023-005",
-      contractType: "garantie",
-      creationDate: "2023-11-03",
-      isActive: false,
-    },
-  ];
-
-  const allClients = defaultClients;
-
-  const [clients, setClients] = useState(allClients);
+  const [clients, setClients] = useState<IClient[]>([]);
+  const [filteredClients, setFilteredClients] = useState<IClient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterActive, setFilterActive] = useState("all");
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          "https://tiny-lizard-94.telebit.io/api/Client/all",
+          {
+            method: "GET",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error("Response body is not readable as a stream");
+        }
+
+        const decoder = new TextDecoder();
+        let result = "";
+
+        // Process the stream
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          // Decode the chunk and add to result
+          const chunk = decoder.decode(value, { stream: true });
+          result += chunk;
+        }
+
+        // Parse and use the complete data
+        const data = JSON.parse(result) as IClient[];
+        setClients(data);
+        console.log(data);
+        setFilteredClients(data);
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+        setError("Failed to load clients. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClients();
+  }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value.toLowerCase();
@@ -122,7 +123,7 @@ const ClientList: React.FC = () => {
   };
 
   const applyFilters = (term: string, type: string, active: string) => {
-    let filtered = allClients;
+    let filtered = [...clients];
 
     if (term) {
       filtered = filtered.filter(
@@ -133,7 +134,11 @@ const ClientList: React.FC = () => {
     }
 
     if (type !== "all") {
-      filtered = filtered.filter((client) => client.contractType === type);
+      filtered = filtered.filter((client) =>
+        type === "garantie"
+          ? client.warrantyContract === "true"
+          : client.warrantyContract !== "true"
+      );
     }
 
     if (active !== "all") {
@@ -142,12 +147,52 @@ const ClientList: React.FC = () => {
       );
     }
 
-    setClients(filtered);
+    setFilteredClients(filtered);
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("ro-RO");
+  };
+  // Add this function within your ClientList component
+  const handleDeleteClient = async (clientId: number) => {
+    if (!window.confirm("Sigur doriți să ștergeți acest client?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://tiny-lizard-94.telebit.io/api/Client/${clientId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Remove the deleted client from state
+      const updatedClients = clients.filter(
+        (client) => client.clientId !== clientId
+      );
+      setClients(updatedClients);
+
+      // Also update filtered clients
+      setFilteredClients((prevFiltered) =>
+        prevFiltered.filter((client) => client.clientId !== clientId)
+      );
+
+      alert("Client șters cu succes!");
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      alert("A apărut o eroare la ștergerea clientului. Încercați din nou.");
+    }
+  };
+
+  // Determine contract type based on warrantyContract field
+  const getContractType = (client: IClient) => {
+    return client.warrantyContract === "true" ? "garantie" : "contract";
   };
 
   return (
@@ -202,7 +247,7 @@ const ClientList: React.FC = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* New Status Filter */}
+          {/* Status Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -262,115 +307,130 @@ const ClientList: React.FC = () => {
       </div>
 
       <div className="rounded-md border border-slate-800 overflow-hidden">
-        <Table>
-          <TableHeader className="bg-slate-800">
-            <TableRow>
-              <TableHead className="text-slate-200">Nume</TableHead>
-              <TableHead className="text-slate-200">Data Crearii</TableHead>
-              <TableHead className="text-slate-200">Contract</TableHead>
-              <TableHead className="text-slate-200">Tip</TableHead>
-              <TableHead className="text-slate-200">Status</TableHead>
-              <TableHead className="text-slate-200 text-right">
-                Actiuni
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {clients.length > 0 ? (
-              clients.map((client) => (
-                <TableRow
-                  key={client.id}
-                  className="border-slate-800 hover:bg-slate-800/50"
-                >
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-slate-400" />
-                    {formatDate(client.creationDate)}
-                  </TableCell>
-                  <TableCell>{client.contractNumber}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        client.contractType === "garantie"
-                          ? "secondary"
-                          : "default"
-                      }
-                      className="capitalize"
-                    >
-                      {client.contractType === "garantie"
-                        ? "Garantie"
-                        : "Contract"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {client.isActive ? (
-                      <span className="flex items-center text-green-500">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Activ
-                      </span>
-                    ) : (
-                      <span className="flex items-center text-red-500">
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Inactiv
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-slate-300 hover:bg-slate-700"
-                        >
-                          <span className="sr-only">Open menu</span>
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="bg-slate-800 text-slate-100 border-slate-700"
+        {isLoading ? (
+          <div className="p-8 text-center text-slate-400">
+            Se încarcă datele...
+          </div>
+        ) : error ? (
+          <div className="p-8 text-center text-red-400">{error}</div>
+        ) : (
+          <Table>
+            <TableHeader className="bg-slate-800">
+              <TableRow>
+                <TableHead className="text-slate-200">Nume</TableHead>
+                <TableHead className="text-slate-200">Data Crearii</TableHead>
+                <TableHead className="text-slate-200">Contract</TableHead>
+                <TableHead className="text-slate-200">Tip</TableHead>
+                <TableHead className="text-slate-200">Status</TableHead>
+                <TableHead className="text-slate-200 text-right">
+                  Actiuni
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredClients.length > 0 ? (
+                filteredClients.map((client) => (
+                  <TableRow
+                    key={client.clientId}
+                    className="border-slate-800 hover:bg-slate-800/50"
+                  >
+                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-slate-400" />
+                      {formatDate(client.createdAt)}
+                    </TableCell>
+                    <TableCell>{client.contractNumber}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          getContractType(client) === "garantie"
+                            ? "secondary"
+                            : "default"
+                        }
+                        className="capitalize"
                       >
-                        <DropdownMenuLabel>Actiuni</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-slate-700" />
-                        <DropdownMenuItem className="focus:bg-slate-700">
-                          <Link
-                            to={`/clients/${client.id}`}
-                            className="flex items-center w-full"
+                        {getContractType(client) === "garantie"
+                          ? "Garantie"
+                          : "Contract"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {client.isActive ? (
+                        <span className="flex items-center text-green-500">
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Activ
+                        </span>
+                      ) : (
+                        <span className="flex items-center text-red-500">
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Inactiv
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-slate-300 hover:bg-slate-700"
                           >
-                            <Eye className="mr-2 h-4 w-4" />
-                            <span>Vizualizare</span>
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="focus:bg-slate-700">
-                          <Link
-                            to={`/clients/${client.id}/edit`}
-                            className="flex items-center w-full"
+                            <span className="sr-only">Open menu</span>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-slate-800 text-slate-100 border-slate-700"
+                        >
+                          <DropdownMenuLabel>Actiuni</DropdownMenuLabel>
+                          <DropdownMenuSeparator className="bg-slate-700" />
+                          <DropdownMenuItem className="focus:bg-slate-700">
+                            <Link
+                              to={`/clients/${client.clientId}`}
+                              className="flex items-center w-full"
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              <span>Vizualizare</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="focus:bg-slate-700">
+                            <Link
+                              to={`/clients/${client.clientId}/edit`}
+                              className="flex items-center w-full"
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Editare</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.preventDefault(); // Prevent any link behavior
+                              handleDeleteClient(client.clientId);
+                            }}
+                            className="focus:bg-slate-700 text-red-400 focus:text-red-400"
+                            style={{ cursor: "pointer" }}
                           >
-                            <Edit className="mr-2 h-4 w-4" />
-                            <span>Editare</span>
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="focus:bg-slate-700 text-red-400 focus:text-red-400">
-                          <Trash className="mr-2 h-4 w-4" />
-                          <span>Sterge</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            <Trash className="mr-2 h-4 w-4" />
+                            <span>Sterge</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="h-24 text-center text-slate-400"
+                  >
+                    Nu s-au găsit clienti.
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-24 text-center text-slate-400"
-                >
-                  Nu s-au găsit clienti.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );

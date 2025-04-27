@@ -1,8 +1,14 @@
 import { FormFields } from "@/types/form";
 import ReusableForm from "@/components/ui/custom components/ReusableForm";
 import * as z from "zod";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AddClient = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
   const formSchema = z.object({
     name: z
       .string()
@@ -26,6 +32,7 @@ const AddClient = () => {
       required_error: "Selectați tipul contractului",
     }),
   });
+
   const formFields: FormFields = {
     name: {
       type: "text",
@@ -67,19 +74,70 @@ const AddClient = () => {
     },
   };
 
-  const handleSubmit = (data: unknown) => {
-    console.log(data);
-    // Handle form submission
+  const handleSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Transform the data to match the API's expected format
+      const clientData = {
+        name: data.name,
+        email: data.email,
+        address: data.address,
+        createdAt: data.creationDate.toISOString(),
+        isActive: true, // Setting default as active
+        warrantyContract: data.contractType === "garantie" ? "true" : "false",
+        contractNumber: data.contractNumber,
+      };
+
+      // Send data to the API
+      const response = await fetch(
+        "https://tiny-lizard-94.telebit.io/api/Client/add",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(clientData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to add client: ${errorText}`);
+      }
+
+      // Success - redirect to clients list
+      alert("Client a fost adăugat cu succes");
+      navigate("/clients");
+    } catch (error) {
+      console.error("Error adding client:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "A apărut o eroare la adăugarea clientului"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <ReusableForm
-      title="Adaugare Client Nou"
-      schema={formSchema}
-      fields={formFields}
-      onSubmit={handleSubmit}
-      submitLabel="Adauga Client"
-    />
+    <div>
+      {error && (
+        <div className="mb-4 p-4 bg-red-900/50 border border-red-800 text-red-100 rounded-md">
+          {error}
+        </div>
+      )}
+      <ReusableForm
+        title="Adaugare Client Nou"
+        schema={formSchema}
+        fields={formFields}
+        onSubmit={(data) => handleSubmit(data as z.infer<typeof formSchema>)}
+        submitLabel={isSubmitting ? "Se adaugă..." : "Adauga Client"}
+        // isSubmitting={isSubmitting}
+      />
+    </div>
   );
 };
 
