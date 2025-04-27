@@ -47,9 +47,7 @@ interface IEquipment {
   };
 }
 
-const Equipment: React.FC<{ equipment: IEquipment[] }> = ({
-  equipment: initialEquipment,
-}) => {
+const Equipment: React.FC = () => {
   // Sample equipment data - replace with your actual data
   const defaultEquipment: IEquipment[] = [
     {
@@ -129,7 +127,7 @@ const Equipment: React.FC<{ equipment: IEquipment[] }> = ({
     },
   ];
 
-  const allEquipment = initialEquipment || defaultEquipment;
+  const allEquipment = defaultEquipment;
 
   const [equipment, setEquipment] = useState(allEquipment);
   const [searchTerm, setSearchTerm] = useState("");

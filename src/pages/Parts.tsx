@@ -30,7 +30,7 @@ interface IPart {
   compatibleWith?: string[];
 }
 
-const PartsList: React.FC<{ parts: IPart[] }> = ({ parts: initialParts }) => {
+const PartsList: React.FC = () => {
   // Sample parts data - replace with your actual data
   const defaultParts: IPart[] = [
     {
@@ -70,7 +70,7 @@ const PartsList: React.FC<{ parts: IPart[] }> = ({ parts: initialParts }) => {
     },
   ];
 
-  const allParts = initialParts || defaultParts;
+  const allParts = defaultParts;
 
   const [parts, setParts] = useState(allParts);
   const [searchTerm, setSearchTerm] = useState("");

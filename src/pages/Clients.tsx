@@ -21,23 +21,21 @@ import {
 import { Search, MoreVertical, Edit, Trash, Eye, Filter } from "lucide-react";
 import { Link } from "react-router";
 import { ROUTES } from "@/Constants";
-interface IClient {
-  id: string;
-  name: string;
-  email: string;
-  address: string;
-  contractNumber: string;
-  contractType: "garantie" | "contract";
-  creationDate: string; // ISO date format like "2023-11-03"
-  phone?: string; // Optional phone number
-  representative?: string; // Optional company representative
-  fiscalCode?: string; // Optional fiscal/tax code
-  registrationNumber?: string; // Optional company registration number
-  notes?: string; // Optional additional notes
-}
-const ClientList: React.FC<{ clients: IClient[] }> = ({
-  clients: initialClients,
-}) => {
+// interface IClient {
+//   id: string;
+//   name: string;
+//   email: string;
+//   address: string;
+//   contractNumber: string;
+//   contractType: "garantie" | "contract";
+//   creationDate: string; // ISO date format like "2023-11-03"
+//   phone?: string; // Optional phone number
+//   representative?: string; // Optional company representative
+//   fiscalCode?: string; // Optional fiscal/tax code
+//   registrationNumber?: string; // Optional company registration number
+//   notes?: string; // Optional additional notes
+// }
+const ClientList: React.FC = () => {
   // Sample client data - replace with your actual data
   const defaultClients = [
     {
@@ -87,7 +85,7 @@ const ClientList: React.FC<{ clients: IClient[] }> = ({
     },
   ];
 
-  const allClients = initialClients || defaultClients;
+  const allClients = defaultClients;
 
   const [clients, setClients] = useState(allClients);
   const [searchTerm, setSearchTerm] = useState("");
