@@ -18,26 +18,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreVertical, Edit, Trash, Eye, Filter } from "lucide-react";
+import {
+  Search,
+  MoreVertical,
+  Edit,
+  Trash,
+  Eye,
+  Filter,
+  Calendar,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { Link } from "react-router";
 import { ROUTES } from "@/Constants";
-// interface IClient {
-//   id: string;
-//   name: string;
-//   email: string;
-//   address: string;
-//   contractNumber: string;
-//   contractType: "garantie" | "contract";
-//   creationDate: string; // ISO date format like "2023-11-03"
-//   phone?: string; // Optional phone number
-//   representative?: string; // Optional company representative
-//   fiscalCode?: string; // Optional fiscal/tax code
-//   registrationNumber?: string; // Optional company registration number
-//   notes?: string; // Optional additional notes
-// }
+
+interface IClient {
+  id: string;
+  name: string;
+  email: string;
+  address: string;
+  contractNumber: string;
+  contractType: "garantie" | "contract";
+  creationDate: string;
+  isActive: boolean;
+}
+
 const ClientList: React.FC = () => {
-  // Sample client data - replace with your actual data
-  const defaultClients = [
+  // Updated client data with isActive field
+  const defaultClients: IClient[] = [
     {
       id: "1",
       name: "SC Example Tech SRL",
@@ -46,6 +54,7 @@ const ClientList: React.FC = () => {
       contractNumber: "CT-2023-001",
       contractType: "garantie",
       creationDate: "2023-07-15",
+      isActive: true,
     },
     {
       id: "2",
@@ -55,6 +64,7 @@ const ClientList: React.FC = () => {
       contractNumber: "CT-2023-002",
       contractType: "contract",
       creationDate: "2023-08-22",
+      isActive: true,
     },
     {
       id: "3",
@@ -64,6 +74,7 @@ const ClientList: React.FC = () => {
       contractNumber: "CT-2023-003",
       contractType: "garantie",
       creationDate: "2023-09-05",
+      isActive: false,
     },
     {
       id: "4",
@@ -73,6 +84,7 @@ const ClientList: React.FC = () => {
       contractNumber: "CT-2023-004",
       contractType: "contract",
       creationDate: "2023-10-18",
+      isActive: true,
     },
     {
       id: "5",
@@ -82,6 +94,7 @@ const ClientList: React.FC = () => {
       contractNumber: "CT-2023-005",
       contractType: "garantie",
       creationDate: "2023-11-03",
+      isActive: false,
     },
   ];
 
@@ -90,44 +103,32 @@ const ClientList: React.FC = () => {
   const [clients, setClients] = useState(allClients);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [filterActive, setFilterActive] = useState("all");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleSearch = (e: any) => {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
+    applyFilters(term, filterType, filterActive);
+  };
 
+  const handleFilterTypeChange = (type: string) => {
+    setFilterType(type);
+    applyFilters(searchTerm, type, filterActive);
+  };
+
+  const handleFilterActiveChange = (active: string) => {
+    setFilterActive(active);
+    applyFilters(searchTerm, filterType, active);
+  };
+
+  const applyFilters = (term: string, type: string, active: string) => {
     let filtered = allClients;
 
     if (term) {
       filtered = filtered.filter(
         (client) =>
           client.name.toLowerCase().includes(term) ||
-          client.email.toLowerCase().includes(term) ||
           client.contractNumber.toLowerCase().includes(term)
-      );
-    }
-
-    if (filterType !== "all") {
-      filtered = filtered.filter(
-        (client) => client.contractType === filterType
-      );
-    }
-
-    setClients(filtered);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleFilterChange = (type: any) => {
-    setFilterType(type);
-
-    let filtered = allClients;
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (client) =>
-          client.name.toLowerCase().includes(searchTerm) ||
-          client.email.toLowerCase().includes(searchTerm) ||
-          client.contractNumber.toLowerCase().includes(searchTerm)
       );
     }
 
@@ -135,7 +136,18 @@ const ClientList: React.FC = () => {
       filtered = filtered.filter((client) => client.contractType === type);
     }
 
+    if (active !== "all") {
+      filtered = filtered.filter(
+        (client) => client.isActive === (active === "active")
+      );
+    }
+
     setClients(filtered);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ro-RO");
   };
 
   return (
@@ -171,24 +183,76 @@ const ClientList: React.FC = () => {
               <DropdownMenuSeparator className="bg-slate-700" />
               <DropdownMenuItem
                 className="focus:bg-slate-700"
-                onClick={() => handleFilterChange("all")}
+                onClick={() => handleFilterTypeChange("all")}
               >
                 Toate
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="focus:bg-slate-700"
-                onClick={() => handleFilterChange("garantie")}
+                onClick={() => handleFilterTypeChange("garantie")}
               >
                 Garantie
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="focus:bg-slate-700"
-                onClick={() => handleFilterChange("contract")}
+                onClick={() => handleFilterTypeChange("contract")}
               >
                 Contract
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* New Status Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="bg-slate-800 text-slate-100 border-slate-700"
+              >
+                {filterActive === "all" ? (
+                  <>
+                    <Filter className="h-4 w-4 mr-2" />
+                    Toate
+                  </>
+                ) : filterActive === "active" ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                    Activ
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 mr-2 text-red-500" />
+                    Inactiv
+                  </>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-slate-800 text-slate-100 border-slate-700">
+              <DropdownMenuLabel>Status</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-slate-700" />
+              <DropdownMenuItem
+                className="focus:bg-slate-700"
+                onClick={() => handleFilterActiveChange("all")}
+              >
+                Toate
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="focus:bg-slate-700"
+                onClick={() => handleFilterActiveChange("active")}
+              >
+                <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                Activ
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="focus:bg-slate-700"
+                onClick={() => handleFilterActiveChange("inactive")}
+              >
+                <XCircle className="h-4 w-4 mr-2 text-red-500" />
+                Inactiv
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Link to={ROUTES.ADD_CLIENT}>
             <Button className="bg-blue-600 hover:bg-blue-700">
               Adauga Client
@@ -202,9 +266,10 @@ const ClientList: React.FC = () => {
           <TableHeader className="bg-slate-800">
             <TableRow>
               <TableHead className="text-slate-200">Nume</TableHead>
-              <TableHead className="text-slate-200">Email</TableHead>
+              <TableHead className="text-slate-200">Data Crearii</TableHead>
               <TableHead className="text-slate-200">Contract</TableHead>
               <TableHead className="text-slate-200">Tip</TableHead>
+              <TableHead className="text-slate-200">Status</TableHead>
               <TableHead className="text-slate-200 text-right">
                 Actiuni
               </TableHead>
@@ -218,7 +283,10 @@ const ClientList: React.FC = () => {
                   className="border-slate-800 hover:bg-slate-800/50"
                 >
                   <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
+                  <TableCell className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-slate-400" />
+                    {formatDate(client.creationDate)}
+                  </TableCell>
                   <TableCell>{client.contractNumber}</TableCell>
                   <TableCell>
                     <Badge
@@ -233,6 +301,19 @@ const ClientList: React.FC = () => {
                         ? "Garantie"
                         : "Contract"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {client.isActive ? (
+                      <span className="flex items-center text-green-500">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Activ
+                      </span>
+                    ) : (
+                      <span className="flex items-center text-red-500">
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Inactiv
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -281,7 +362,7 @@ const ClientList: React.FC = () => {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="h-24 text-center text-slate-400"
                 >
                   Nu s-au găsit clienti.
