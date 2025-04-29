@@ -256,7 +256,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
           <Text style={{ fontSize: 12 }}>{data.problemDescription}</Text>
           {data.beforePhotos && data.beforePhotos.length > 0 && (
             <View style={styles.photoGrid}>
-              {[1, 2, 3, 4, 5].map((photo, index) => (
+              {[1, 2, 3, 4, 5].map((_, index) => (
                 <Image
                   key={`after-${index}`}
                   style={styles.image}
@@ -446,7 +446,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
           <Text style={{ fontSize: 12 }}>{data.conclusions}</Text>
           {data.afterPhotos && data.afterPhotos.length > 0 && (
             <View style={styles.photoGrid}>
-              {[1, 2, 3, 4, 5].map((photo, index) => (
+              {[1, 2, 3, 4, 5].map((_, index) => (
                 <Image
                   key={`after-${index}`}
                   style={styles.image}
