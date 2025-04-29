@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { ROUTES } from "./Constants";
 import {
   NavigationMenu,
@@ -71,6 +71,8 @@ const navigationItems: NavItem[] = [
 // Updated Navigation component using the config
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const location = useLocation();
+  if (location.pathname === ROUTES.LOGIN) return;
 
   const renderDesktopNav = (item: NavItem) => {
     if (item.type === "link") {

@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
   image: {
     marginVertical: 10,
     width: 150,
-    height: 150,
   },
   photoSection: {
     marginTop: 20,
@@ -75,6 +74,7 @@ const styles = StyleSheet.create({
   photoGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: 10,
   },
   signatureSection: {
     marginTop: 30,
@@ -204,6 +204,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
         {/* Client Information */}
         <View style={{ gap: 5 }}>
           <Text
+            wrap={false}
             style={{
               padding: "5px",
               backgroundColor: "#5eb6ff",
@@ -242,6 +243,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
         {/* Problem Description */}
         <View style={{ gap: 5 }}>
           <Text
+            wrap={false}
             style={{
               padding: "5px",
               backgroundColor: "#5eb6ff",
@@ -252,11 +254,25 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
             DESCRIEREA PROBLEMEI
           </Text>
           <Text style={{ fontSize: 12 }}>{data.problemDescription}</Text>
+          {data.beforePhotos && data.beforePhotos.length > 0 && (
+            <View style={styles.photoGrid}>
+              {[1, 2, 3, 4, 5].map((photo, index) => (
+                <Image
+                  key={`after-${index}`}
+                  style={styles.image}
+                  src={
+                    "https://medgill.co.uk/cdn/shop/collections/image_d428c745-7b12-4c6b-bc3d-3ac49ec57673.jpg?v=1722875051&width=1500"
+                  }
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Standard procedures  */}
         <View style={{ gap: 5 }}>
           <Text
+            wrap={false}
             style={{
               padding: "5px",
               backgroundColor: "#5eb6ff",
@@ -283,6 +299,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
         {/* Additional procedures  */}
         <View style={{ gap: 5 }}>
           <Text
+            wrap={false}
             style={{
               padding: "5px",
               backgroundColor: "#5eb6ff",
@@ -311,6 +328,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
         {data.replacedParts && data.replacedParts.length > 0 && (
           <View style={{ gap: 5 }}>
             <Text
+              wrap={false}
               style={{
                 padding: "5px",
                 backgroundColor: "#5eb6ff",
@@ -320,7 +338,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
             >
               PIESE DE SCHIMB UTILIZATE
             </Text>
-            <View>
+            <View wrap={false}>
               <View
                 style={{
                   flexDirection: "row",
@@ -376,6 +394,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
         {/* Additional Information */}
         <View style={{ gap: 5 }}>
           <Text
+            wrap={false}
             style={{
               padding: "5px",
               backgroundColor: "#5eb6ff",
@@ -414,6 +433,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
         {/* Conclusions */}
         <View style={{ gap: 5 }}>
           <Text
+            wrap={false}
             style={{
               padding: "5px",
               backgroundColor: "#5eb6ff",
@@ -424,6 +444,19 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
             CONCLUZII
           </Text>
           <Text style={{ fontSize: 12 }}>{data.conclusions}</Text>
+          {data.afterPhotos && data.afterPhotos.length > 0 && (
+            <View style={styles.photoGrid}>
+              {[1, 2, 3, 4, 5].map((photo, index) => (
+                <Image
+                  key={`after-${index}`}
+                  style={styles.image}
+                  src={
+                    "https://images.stockcake.com/public/2/7/8/2786aaa1-66ae-4360-8af3-160232beced6_large/medical-equipment-stand-stockcake.jpg"
+                  }
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Before Photos Section */}
@@ -442,24 +475,8 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
           </View>
         )} */}
 
-        {/* After Photos Section */}
-        {/* {data.afterPhotos && data.afterPhotos.length > 0 && (
-          <View style={styles.photoSection}>
-            <Text style={styles.photoTitle}>Poze după interventie:</Text>
-            <View style={styles.photoGrid}>
-              {data.afterPhotos.map((photo, index) => (
-                <Image
-                  key={`after-${index}`}
-                  style={styles.image}
-                  src={photo}
-                />
-              ))}
-            </View>
-          </View>
-        )} */}
-
         {/* Signature Section */}
-        <View style={styles.signatureSection}>
+        <View style={styles.signatureSection} wrap={false}>
           <View style={styles.signature}>
             <Text style={styles.signatureLabel}>Semnatura client:</Text>
             <Image
