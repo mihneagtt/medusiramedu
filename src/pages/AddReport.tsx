@@ -11,7 +11,7 @@ import {
 } from "@react-pdf/renderer";
 import { FormFields } from "@/types/form";
 import ReusableForm from "@/components/ui/custom components/ReusableForm";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo-black.jpg";
 import * as z from "zod";
 
 // Create styles for PDF
@@ -291,7 +291,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
               "VERIFICARE SISTEM OPTIC, ADJUST LED =",
               "TESTARE LA ELECTROSECURITATE",
             ].map((procedure) => (
-              <Text>{procedure}</Text>
+              <Text key={procedure}>{procedure}</Text>
             ))}
           </View>
         </View>

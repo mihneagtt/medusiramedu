@@ -23,18 +23,8 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
-// import { ROUTES } from "@/Constants";
-
-interface IClient {
-  clientId: number;
-  name: string;
-  email: string;
-  address: string;
-  createdAt: string;
-  isActive: boolean;
-  warrantyContract: string;
-  contractNumber: string;
-}
+import { api_DELETE, api_GET } from "@/utilities";
+import { IClient } from "@/types/entitites";
 
 const ClientDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,49 +38,21 @@ const ClientDetails: React.FC = () => {
       if (!id) return;
 
       setIsLoading(true);
-      try {
-        const response = await fetch(
-          `https://tiny-lizard-94.telebit.io/api/Client/${id}`,
-          {
-            method: "GET",
-          }
-        );
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("Response body is not readable as a stream");
-        }
-
-        const decoder = new TextDecoder();
-        let result = "";
-
-        // Process the stream
-        while (true) {
-          const { done, value } = await reader.read();
-
-          if (done) {
-            break;
-          }
-
-          // Decode the chunk and add to result
-          const chunk = decoder.decode(value, { stream: true });
-          result += chunk;
-        }
-
-        // Parse and use the complete data
-        const data = JSON.parse(result) as IClient;
-        setClient(data);
-        setError(null);
-      } catch (error) {
-        console.error("Error fetching client:", error);
-        setError("Failed to load client details. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
+      api_GET(`Client/${id}`)
+        .then((result) => {
+          // Parse and use the complete data
+          const data = JSON.parse(result) as IClient;
+          setClient(data);
+          setError(null);
+        })
+        .catch((error) => {
+          console.error("Error fetching client:", error);
+          setError("Failed to load client details. Please try again later.");
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     };
 
     fetchClient();
@@ -112,24 +74,15 @@ const ClientDetails: React.FC = () => {
       return;
     }
 
-    try {
-      const response = await fetch(
-        `https://tiny-lizard-94.telebit.io/api/Client/${client.clientId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      alert("Client șters cu succes!");
-      navigate("/clients");
-    } catch (error) {
-      console.error("Error deleting client:", error);
-      alert("A apărut o eroare la ștergerea clientului. Încercați din nou.");
-    }
+    api_DELETE(`Client/${client.clientId}`)
+      .then(() => {
+        alert("Client șters cu succes!");
+        navigate("/clients");
+      })
+      .catch((error) => {
+        console.error("Error deleting client:", error);
+        alert("A apărut o eroare la ștergerea clientului. Încercați din nou.");
+      });
   };
 
   if (isLoading) {
