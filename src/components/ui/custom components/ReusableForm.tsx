@@ -21,6 +21,7 @@ const ReusableForm: React.FC<ReusableFormProps> = ({
   });
 
   const handleSubmit = () => {
+    console.log(form.getValues());
     onSubmit(form.getValues());
   };
 

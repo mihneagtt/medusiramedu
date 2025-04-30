@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   PDFDownloadLink,
   Document,
@@ -13,8 +13,6 @@ import { FormFields } from "@/types/form";
 import ReusableForm from "@/components/ui/custom components/ReusableForm";
 import logo from "../assets/logo-black.jpg";
 import * as z from "zod";
-import { api_GET } from "@/utilities";
-import { IClient, IEquipment, IPart } from "@/types/entitites";
 
 // Create styles for PDF
 const styles = StyleSheet.create({
@@ -93,19 +91,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
-
 export interface ServiceReportData {
   // Client Information
   client: string;
-  clientName?: string;
   representative: string;
 
   // Equipment Information
   equipment: string;
-  equipmentName?: string;
-  serialNumber?: string;
-  contractNumber?: string;
-  clientEmail?: string;
   problemDescription: string;
 
   // Service Details
@@ -131,12 +123,60 @@ export interface ServiceReportData {
   updatedAt?: string;
   status?: "draft" | "submitted" | "approved" | "completed";
 }
+// Base64 placeholder for signature (this is just a minimal example - real signatures would be longer)
+const signaturePlaceholder =
+  "data:image/png;base64,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";
 
-interface IStandardProcedure {
-  procedureId: string;
-  name: string;
-  description: string;
-}
+// Example image data URL (a small transparent PNG)
+const imagePlaceholder =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+// Single service report example
+const sampleServiceReport: ServiceReportData = {
+  // Client Information
+  client: "SC Mega Industries SRL",
+  representative: "Ion Popescu",
+
+  // Equipment Information
+  equipment: "Compresor industrial AR-7500",
+  problemDescription:
+    "Echipamentul emite un zgomot puternic în timpul functionarii si se opreste automat dupa aproximativ 10 minute de utilizare.",
+
+  // Service Details
+  beforePhotos: [imagePlaceholder, imagePlaceholder],
+  standardProcedures: [
+    "Verificare conexiuni electrice",
+    "Curățare filtre de aer",
+    "Testare presiune de lucru",
+  ],
+  additionalProcedures: [
+    "Înlocuire garnituri uzate",
+    "Calibrare senzor de temperatură",
+  ],
+  replacedParts: [
+    "Filtru de aer FLT-1200",
+    "Garnitură compresor GRN-452",
+    "Senzor de presiune SNZ-889",
+  ],
+
+  // Work Metrics
+  workHours: 3.5,
+  travelDistance: 45,
+  conclusions:
+    "Compresorul a fost reparat cu succes. Cauza principala a defectiunii a fost o garnitura uzata care permitea scurgerea de aer si supraincalzirea motorului. După inlocuirea pieselor si recalibrarea senzorilor, echipamentul functioneaza la parametri normali.",
+  afterPhotos: [imagePlaceholder, imagePlaceholder, imagePlaceholder],
+
+  // Signatures
+  clientSignature: signaturePlaceholder,
+  engineerSignature: signaturePlaceholder,
+
+  // Metadata
+  reportId: "SRV-20250428-001",
+  serviceDate: "2025-04-28",
+  createdAt: "2025-04-28T10:15:30Z",
+  updatedAt: "2025-04-28T14:20:45Z",
+  status: "completed",
+};
 
 // PDF Document component
 const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
@@ -176,9 +216,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
           </Text>
           <View style={styles.row}>
             <Text style={styles.labelColumn}>Beneficiar:</Text>
-            <Text style={styles.valueColumn}>
-              {data.clientName || data.client}
-            </Text>
+            <Text style={styles.valueColumn}>{data.client}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.labelColumn}>Reprezentat de:</Text>
@@ -186,23 +224,19 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
           </View>
           <View style={styles.row}>
             <Text style={styles.labelColumn}>Model analizor:</Text>
-            <Text style={styles.valueColumn}>
-              {data.equipmentName || data.equipment}
-            </Text>
+            <Text style={styles.valueColumn}>{data.equipment}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.labelColumn}>S/N:</Text>
-            <Text style={styles.valueColumn}>{data.serialNumber || "N/A"}</Text>
+            <Text style={styles.valueColumn}>SERIAL NUMBER</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.labelColumn}>Contract de service:</Text>
-            <Text style={styles.valueColumn}>
-              {data.contractNumber || "N/A"}
-            </Text>
+            <Text style={styles.valueColumn}>CONTRACT_NO</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.labelColumn}>Contact:</Text>
-            <Text style={styles.valueColumn}>{data.clientEmail || "N/A"}</Text>
+            <Text style={styles.valueColumn}>EMAIL</Text>
           </View>
         </View>
 
@@ -222,11 +256,13 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
           <Text style={{ fontSize: 12 }}>{data.problemDescription}</Text>
           {data.beforePhotos && data.beforePhotos.length > 0 && (
             <View style={styles.photoGrid}>
-              {data.beforePhotos.map((photo, index) => (
+              {[1, 2, 3, 4, 5].map((_, index) => (
                 <Image
-                  key={`before-${index}`}
+                  key={`after-${index}`}
                   style={styles.image}
-                  src={photo}
+                  src={
+                    "https://medgill.co.uk/cdn/shop/collections/image_d428c745-7b12-4c6b-bc3d-3ac49ec57673.jpg?v=1722875051&width=1500"
+                  }
                 />
               ))}
             </View>
@@ -247,33 +283,46 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
             PROCEDURI DE MENTENANTA STANDARD EFECTUATE:
           </Text>
           <View style={{ gap: 10, fontSize: "12px" }}>
-            {data.standardProcedures.map((procedure) => (
+            {[
+              "DECONTAMINARE INTERNA SI EXTERNA",
+              "UNGERE PARTI MECANICE",
+              "VERIFICARE SISTEM HIDRAULIC, VACCUM =",
+              "VERIFICARE ANSAMBLU ASPIRATIE",
+              "VERIFICARE SISTEM OPTIC, ADJUST LED =",
+              "TESTARE LA ELECTROSECURITATE",
+            ].map((procedure) => (
               <Text key={procedure}>{procedure}</Text>
             ))}
           </View>
         </View>
 
         {/* Additional procedures  */}
-        {data.additionalProcedures && data.additionalProcedures.length > 0 && (
-          <View style={{ gap: 5 }}>
-            <Text
-              wrap={false}
-              style={{
-                padding: "5px",
-                backgroundColor: "#5eb6ff",
-                border: "1px solid black",
-                fontSize: 14,
-              }}
-            >
-              PROCEDURI DE MENTENANTA SUPLIMENTARE EFECTUATE:
-            </Text>
-            <View style={{ gap: 10, fontSize: "12px" }}>
-              {data.additionalProcedures.map((procedure) => (
-                <Text key={procedure}>{procedure}</Text>
-              ))}
-            </View>
+        <View style={{ gap: 5 }}>
+          <Text
+            wrap={false}
+            style={{
+              padding: "5px",
+              backgroundColor: "#5eb6ff",
+              border: "1px solid black",
+              fontSize: 14,
+            }}
+          >
+            PROCEDURI DE MENTENANTA SUPLIMENTARE EFECTUATE:
+          </Text>
+          <View style={{ gap: 10, fontSize: "12px" }}>
+            {[
+              "DECONTAMINARE",
+              "VERIFICARE VACCUM",
+              "VERIFICARE ASPIRATIE",
+              "ADJUST LED ",
+              "TESTARE",
+              "MANEVRARE",
+              "DEBITARE",
+            ].map((procedure) => (
+              <Text>{procedure}</Text>
+            ))}
           </View>
-        )}
+        </View>
 
         {/* Parts Replaced */}
         {data.replacedParts && data.replacedParts.length > 0 && (
@@ -315,7 +364,6 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
               </View>
               {data.replacedParts.map((part) => (
                 <View
-                  key={part}
                   style={{
                     flexDirection: "row",
                     fontSize: 12,
@@ -329,14 +377,16 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
                       borderRight: "1px solid black",
                     }}
                   >
-                    {part} (1)
+                    {part} ({part.length})
                   </Text>
-                  <Text style={{ padding: "5px", width: "50%" }}>{part}</Text>
+                  <Text style={{ padding: "5px", width: "50%" }}>
+                    SERIAL_NO{part.length}
+                  </Text>
                 </View>
               ))}
             </View>
             <Text style={{ fontSize: 12 }}>
-              Nr. Bon de consum (daca este cazul) : N/A
+              Nr. Bon de consum (daca este cazul) : NUMERO_CONSUMERO
             </Text>
           </View>
         )}
@@ -362,7 +412,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
               fontSize: 12,
             }}
           >
-            <Text>TIMP DE LUCRU: {data.workHours} ore</Text>
+            <Text>TIMP DE LUCRU: {data.workHours}</Text>
             <Text>
               (pretul orelor de manopera este conform contractului de service)
             </Text>
@@ -375,9 +425,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
               fontSize: 12,
             }}
           >
-            <Text>
-              CHELTUIELI DE TRANSPORT/KM: {data.travelDistance || 0} km
-            </Text>
+            <Text>CHELTUIELI DE TRANSPORT/KM: {data.workHours}</Text>
             <Text>(daca este cazul)</Text>
           </View>
         </View>
@@ -398,16 +446,34 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
           <Text style={{ fontSize: 12 }}>{data.conclusions}</Text>
           {data.afterPhotos && data.afterPhotos.length > 0 && (
             <View style={styles.photoGrid}>
-              {data.afterPhotos.map((photo, index) => (
+              {[1, 2, 3, 4, 5].map((_, index) => (
                 <Image
                   key={`after-${index}`}
                   style={styles.image}
-                  src={photo}
+                  src={
+                    "https://images.stockcake.com/public/2/7/8/2786aaa1-66ae-4360-8af3-160232beced6_large/medical-equipment-stand-stockcake.jpg"
+                  }
                 />
               ))}
             </View>
           )}
         </View>
+
+        {/* Before Photos Section */}
+        {/* {data.beforePhotos && data.beforePhotos.length > 0 && (
+          <View style={styles.photoSection}>
+            <Text style={styles.photoTitle}>Poze inainte de interventie:</Text>
+            <View style={styles.photoGrid}>
+              {data.beforePhotos.map((photo, index) => (
+                <Image
+                  key={`before-${index}`}
+                  style={styles.image}
+                  src={photo}
+                />
+              ))}
+            </View>
+          </View>
+        )} */}
 
         {/* Signature Section */}
         <View style={styles.signatureSection} wrap={false}>
@@ -431,88 +497,9 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
   </Document>
 );
 
-// Modified AddReport component with PDF generation and API data
-const AddReport = () => {
-  const [formData, setFormData] = useState<ServiceReportData | null>(null);
-  const [clients, setClients] = useState<IClient[]>([]);
-  const [equipment, setEquipment] = useState<IEquipment[]>([]);
-  const [parts, setParts] = useState<IPart[]>([]);
-  const [standardProcedures, setStandardProcedures] = useState<
-    IStandardProcedure[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // const [selectedClient] = useState<string>("");
-  // const [clientEquipment, setClientEquipment] = useState<IEquipment[]>([]);
-
-  // Fetch data from API
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        // Fetch all required data concurrently
-        const [
-          clientsResponse,
-          equipmentResponse,
-          partsResponse,
-          proceduresResponse,
-        ] = await Promise.all([
-          api_GET("Client/all"),
-          api_GET("Device/all"),
-          api_GET("Part/all"),
-          api_GET("StandardProcedure/all"),
-        ]);
-
-        // Parse responses if they are strings
-        const parsedClients =
-          typeof clientsResponse === "string"
-            ? JSON.parse(clientsResponse)
-            : clientsResponse;
-        const parsedEquipment =
-          typeof equipmentResponse === "string"
-            ? JSON.parse(equipmentResponse)
-            : equipmentResponse;
-        const parsedParts =
-          typeof partsResponse === "string"
-            ? JSON.parse(partsResponse)
-            : partsResponse;
-        const parsedProcedures =
-          typeof proceduresResponse === "string"
-            ? JSON.parse(proceduresResponse)
-            : proceduresResponse;
-
-        setClients(parsedClients);
-        setEquipment(parsedEquipment);
-        setParts(parsedParts);
-        setStandardProcedures(parsedProcedures);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "A apărut o eroare la încărcarea datelor"
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Filter equipment by selected client
-  // useEffect(() => {
-  //   if (selectedClient && equipment.length > 0) {
-  //     const filteredEquipment = equipment.filter(
-  //       (equip) => equip.clientId.toString() === selectedClient
-  //     );
-  //     setClientEquipment(filteredEquipment);
-  //   } else {
-  //     setClientEquipment([]);
-  //   }
-  // }, [selectedClient, equipment]);
+// Modified AddReport component with PDF generation
+const PLM = () => {
+  const [formData, setFormData] = React.useState<ServiceReportData>();
 
   const formSchema = z.object({
     client: z.string({
@@ -558,37 +545,17 @@ const AddReport = () => {
     }),
   });
 
-  // Transform API data to form options
-  const clientOptions = clients.map((client) => ({
-    value: client.clientId.toString(),
-    label: client.name,
-  }));
-
-  const equipmentOptions = equipment.map((equip) => ({
-    value: equip.serialNumber,
-    label: `${equip.description} (${equip.serialNumber})`,
-  }));
-
-  const partOptions = parts.map((part) => ({
-    value: part.partNumber,
-    label: `${part.description} - ${part.price} RON`,
-  }));
-
-  const procedureOptions = standardProcedures.map((proc) => ({
-    value: proc.procedureId,
-    label: proc.name,
-  }));
-
-  console.log(procedureOptions);
-
   const formFields: FormFields = {
     client: {
       type: "combobox",
       label: "Client",
       placeholder: "Selectați clientul",
       defaultValue: "",
-      options: clientOptions,
-      // onChange: (value) => setSelectedClient(value as string),
+      options: [
+        // These would be populated from your database
+        { value: "client1", label: "Client 1" },
+        { value: "client2", label: "Client 2" },
+      ],
     },
     representative: {
       type: "text",
@@ -601,7 +568,11 @@ const AddReport = () => {
       label: "Aparat",
       placeholder: "Selectați aparatul",
       defaultValue: "",
-      options: equipmentOptions,
+      options: [
+        // These would be populated from your database
+        { value: "equip1", label: "Aparat 1" },
+        { value: "equip2", label: "Aparat 2" },
+      ],
     },
     problemDescription: {
       type: "textarea",
@@ -623,7 +594,11 @@ const AddReport = () => {
       multiple: true,
       maxFields: 5,
       addButtonLabel: "Adaugă procedură standard",
-      options: procedureOptions,
+      options: [
+        // These would be populated from your database
+        { value: "proc1", label: "Procedură 1" },
+        { value: "proc2", label: "Procedură 2" },
+      ],
     },
     additionalProcedures: {
       type: "text",
@@ -642,7 +617,11 @@ const AddReport = () => {
       multiple: true,
       maxFields: 10,
       addButtonLabel: "Adaugă piesă înlocuită",
-      options: partOptions,
+      options: [
+        // These would be populated from your database
+        { value: "part1", label: "Piesă 1" },
+        { value: "part2", label: "Piesă 2" },
+      ],
     },
     workHours: {
       type: "text",
@@ -680,51 +659,11 @@ const AddReport = () => {
     },
   };
 
-  const handleSubmit = (data: z.infer<typeof formSchema>) => {
-    // Enhance data with names and details from API data
-    console.log("data", data);
-    const selectedClientData = clients.find(
-      (c) => c.clientId.toString() === data.client
-    );
-    const selectedEquipmentData = equipment.find(
-      (e) => e.serialNumber === data.equipment
-    );
-    // const selectedProcedures = data?.standardProcedures? .map((procId) => {
-    //   const proc = standardProcedures.find((p) => p.procedureId === procId);
-    //   return proc ? proc.name : procId;
-    // });
-    const selectedParts = data.replacedParts
-      ? data.replacedParts.map((partId) => {
-          const part = parts.find((p) => p.partNumber === partId);
-          return part ? part.description : partId;
-        })
-      : [];
-
-    const enhancedData: ServiceReportData = {
-      ...data,
-      clientName: selectedClientData?.name,
-      clientEmail: selectedClientData?.email,
-      contractNumber: selectedClientData?.contractNumber,
-      equipmentName: selectedEquipmentData?.description,
-      serialNumber: selectedEquipmentData?.serialNumber,
-      standardProcedures: [],
-      replacedParts: selectedParts,
-    };
-
-    setFormData(enhancedData);
+  const handleSubmit = (data: ServiceReportData) => {
+    console.log(data);
+    setFormData(data); // Store form data for PDF generation
+    console.log(formData);
   };
-
-  if (isLoading) {
-    return <div className="p-4">Se încarcă datele...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 bg-red-900/50 border border-red-800 text-red-100 rounded-md">
-        {error}
-      </div>
-    );
-  }
 
   return (
     <>
@@ -732,36 +671,23 @@ const AddReport = () => {
         title="Adaugare Raport Service Nou"
         schema={formSchema}
         fields={formFields}
-        onSubmit={(data) => handleSubmit(data as z.infer<typeof formSchema>)}
+        onSubmit={(data) => handleSubmit(data as ServiceReportData)}
         submitLabel="Adauga Raport Service"
       />
-
-      {formData && (
-        <>
-          <div className="mt-8">
-            <h2 className="text-xl font-bold mb-4">Previzualizare PDF</h2>
-            <PDFViewer width={"100%"} height={"700px"}>
-              <ServiceReportPDF data={formData} />
-            </PDFViewer>
-          </div>
-
-          <div className="mt-4 mb-8">
-            <PDFDownloadLink
-              document={<ServiceReportPDF data={formData} />}
-              fileName={`service-report-${
-                formData.clientName || formData.client
-              }-${new Date().toISOString().split("T")[0]}.pdf`}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              {({ loading }) =>
-                loading ? "Se generează PDF..." : "Descarcă PDF"
-              }
-            </PDFDownloadLink>
-          </div>
-        </>
-      )}
+      <PDFViewer width={"100%"} height={"700px"}>
+        <ServiceReportPDF data={sampleServiceReport} />
+      </PDFViewer>
+      <PDFDownloadLink
+        document={<ServiceReportPDF data={sampleServiceReport} />}
+        fileName={`service-report-${sampleServiceReport.client}-${
+          new Date().toISOString().split("T")[0]
+        }.pdf`}
+        // className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+      >
+        {({ loading }) => (loading ? "Se generează PDF..." : "Descarcă PDF")}
+      </PDFDownloadLink>
     </>
   );
 };
 
-export default AddReport;
+export default PLM;
