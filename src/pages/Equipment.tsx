@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,176 +18,114 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Search,
-  MoreVertical,
-  Edit,
-  Trash,
-  Eye,
-  Filter,
-  Calendar,
-} from "lucide-react";
+import { Search, MoreVertical, Edit, Trash, Eye, Filter } from "lucide-react";
 import { Link } from "react-router";
 import { ROUTES } from "@/Constants";
-
-// Equipment type definition
-interface IEquipment {
-  id: string;
-  serialNumber: string;
-  importDate: string;
-  installDate: string;
-  softwareVersion: string;
-  client: {
-    id: string;
-    name: string;
-  };
-  supplier: {
-    id: string;
-    name: string;
-  };
-}
+import { api_GET, api_DELETE } from "@/utilities";
+import { IEquipment } from "@/types/entitites";
 
 const Equipment: React.FC = () => {
-  // Sample equipment data - replace with your actual data
-  const defaultEquipment: IEquipment[] = [
-    {
-      id: "1",
-      serialNumber: "XR-2023-001",
-      importDate: "2023-06-10",
-      installDate: "2023-06-15",
-      softwareVersion: "v3.2.1",
-      client: {
-        id: "1",
-        name: "SC Example Tech SRL",
-      },
-      supplier: {
-        id: "1",
-        name: "TechSupply Inc.",
-      },
-    },
-    {
-      id: "2",
-      serialNumber: "XR-2023-002",
-      importDate: "2023-07-05",
-      installDate: "2023-07-12",
-      softwareVersion: "v3.2.1",
-      client: {
-        id: "2",
-        name: "Petrica Ionescu PFA",
-      },
-      supplier: {
-        id: "2",
-        name: "Equipment Providers SRL",
-      },
-    },
-    {
-      id: "3",
-      serialNumber: "XR-2023-003",
-      importDate: "2023-08-15",
-      installDate: "2023-08-20",
-      softwareVersion: "v3.3.0",
-      client: {
-        id: "3",
-        name: "Mega Engineering SRL",
-      },
-      supplier: {
-        id: "1",
-        name: "TechSupply Inc.",
-      },
-    },
-    {
-      id: "4",
-      serialNumber: "XR-2023-004",
-      importDate: "2023-09-22",
-      installDate: "2023-09-30",
-      softwareVersion: "v3.3.0",
-      client: {
-        id: "4",
-        name: "Construct Solutions SA",
-      },
-      supplier: {
-        id: "3",
-        name: "Industrial Equipment SA",
-      },
-    },
-    {
-      id: "5",
-      serialNumber: "XR-2023-005",
-      importDate: "2023-10-10",
-      installDate: "2023-10-15",
-      softwareVersion: "v3.4.0",
-      client: {
-        id: "5",
-        name: "Medical Services Group",
-      },
-      supplier: {
-        id: "2",
-        name: "Equipment Providers SRL",
-      },
-    },
-  ];
-
-  const allEquipment = defaultEquipment;
-
-  const [equipment, setEquipment] = useState(allEquipment);
+  const [equipment, setEquipment] = useState<IEquipment[]>([]);
+  const [allEquipment, setAllEquipment] = useState<IEquipment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSupplier, setFilterSupplier] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch equipment data
+  useEffect(() => {
+    const fetchEquipment = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await api_GET("Device/all");
+        const devices = JSON.parse(data);
+        // Transform data if needed to match our interface
+        const formattedData: IEquipment[] = devices.map((item: IEquipment) => ({
+          id: item.serialNumber.toString(),
+          serialNumber: item.serialNumber,
+          description: item.description || "N/A", // Add model with fallback
+          softwareVersion: item.softwareVersion,
+          clientId: item.clientId?.toString() || "",
+          clientName: item.clientName || "N/A",
+          supplierId: item.supplierId.toString() || "",
+          supplierName: item.supplierName || "N/A",
+        }));
+        console.log(formattedData);
+
+        setEquipment(formattedData);
+        setAllEquipment(formattedData);
+      } catch (err) {
+        console.error("Error fetching equipment:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "A apărut o eroare la încărcarea aparatelor"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEquipment();
+  }, []);
 
   // Get unique suppliers for filter
   const suppliers = [
-    ...new Set(allEquipment.map((item) => item.supplier.name)),
+    ...new Set(allEquipment.map((item) => item.supplierName).filter(Boolean)),
   ];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleSearch = (e: any) => {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
+    filterEquipment(term, filterSupplier);
+  };
 
-    let filtered = allEquipment;
+  const handleFilterChange = (supplier: string) => {
+    setFilterSupplier(supplier);
+    filterEquipment(searchTerm, supplier);
+  };
+
+  const filterEquipment = (term: string, supplier: string) => {
+    let filtered = [...allEquipment];
 
     if (term) {
       filtered = filtered.filter(
         (item) =>
           item.serialNumber.toLowerCase().includes(term) ||
-          item.client.name.toLowerCase().includes(term) ||
+          item.description.toLowerCase().includes(term) ||
+          item.clientName.toLowerCase().includes(term) ||
           item.softwareVersion.toLowerCase().includes(term)
       );
     }
 
-    if (filterSupplier) {
-      filtered = filtered.filter(
-        (item) => item.supplier.name === filterSupplier
-      );
-    }
-
-    setEquipment(filtered);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleFilterChange = (supplier: any) => {
-    setFilterSupplier(supplier);
-
-    let filtered = allEquipment;
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (item) =>
-          item.serialNumber.toLowerCase().includes(searchTerm) ||
-          item.client.name.toLowerCase().includes(searchTerm) ||
-          item.softwareVersion.toLowerCase().includes(searchTerm)
-      );
-    }
-
     if (supplier) {
-      filtered = filtered.filter((item) => item.supplier.name === supplier);
+      filtered = filtered.filter((item) => item.supplierName === supplier);
     }
 
     setEquipment(filtered);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ro-RO");
+  const handleDelete = async (serialNumber: string) => {
+    if (window.confirm("Sunteți sigur că doriți să ștergeți acest aparat?")) {
+      try {
+        await api_DELETE(`Device/${serialNumber}`);
+
+        // Update the local state after successful deletion
+        setEquipment(
+          equipment.filter((item) => item.serialNumber !== serialNumber)
+        );
+        setAllEquipment(
+          allEquipment.filter((item) => item.serialNumber !== serialNumber)
+        );
+
+        alert("Aparatul a fost șters cu succes");
+      } catch (err) {
+        console.error("Error deleting equipment:", err);
+        alert("A apărut o eroare la ștergerea aparatului");
+      }
+    }
   };
 
   return (
@@ -242,14 +180,20 @@ const Equipment: React.FC = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="mb-4 p-4 bg-red-900/50 border border-red-800 text-red-100 rounded-md">
+          {error}
+        </div>
+      )}
+
       <div className="rounded-md border border-slate-800 overflow-hidden">
         <Table>
           <TableHeader className="bg-slate-800">
             <TableRow>
               <TableHead className="text-slate-200">Serie</TableHead>
+              <TableHead className="text-slate-200">Model</TableHead>
               <TableHead className="text-slate-200">Client</TableHead>
               <TableHead className="text-slate-200">Furnizor</TableHead>
-              <TableHead className="text-slate-200">Data Instalare</TableHead>
               <TableHead className="text-slate-200">Versiune</TableHead>
               <TableHead className="text-slate-200 text-right">
                 Actiuni
@@ -257,21 +201,27 @@ const Equipment: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {equipment.length > 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="h-24 text-center text-slate-400"
+                >
+                  Se încarcă...
+                </TableCell>
+              </TableRow>
+            ) : equipment.length > 0 ? (
               equipment.map((item) => (
                 <TableRow
-                  key={item.id}
+                  key={item.serialNumber}
                   className="border-slate-800 hover:bg-slate-800/50"
                 >
                   <TableCell className="font-medium">
                     {item.serialNumber}
                   </TableCell>
-                  <TableCell>{item.client.name}</TableCell>
-                  <TableCell>{item.supplier.name}</TableCell>
-                  <TableCell className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-slate-400" />
-                    {formatDate(item.installDate)}
-                  </TableCell>
+                  <TableCell>{item.description}</TableCell>
+                  <TableCell>{item.clientName}</TableCell>
+                  <TableCell>{item.supplierName}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
@@ -299,7 +249,7 @@ const Equipment: React.FC = () => {
                         <DropdownMenuSeparator className="bg-slate-700" />
                         <DropdownMenuItem className="focus:bg-slate-700">
                           <Link
-                            to={`/equipment/${item.id}`}
+                            to={`/equipment/${item.serialNumber}`}
                             className="flex items-center w-full"
                           >
                             <Eye className="mr-2 h-4 w-4" />
@@ -308,14 +258,17 @@ const Equipment: React.FC = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem className="focus:bg-slate-700">
                           <Link
-                            to={`/equipment/${item.id}/edit`}
+                            to={`/equipment/${item.serialNumber}/edit`}
                             className="flex items-center w-full"
                           >
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Editare</span>
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="focus:bg-slate-700 text-red-400 focus:text-red-400">
+                        <DropdownMenuItem
+                          className="focus:bg-slate-700 text-red-400 focus:text-red-400"
+                          onClick={() => handleDelete(item.serialNumber)}
+                        >
                           <Trash className="mr-2 h-4 w-4" />
                           <span>Sterge</span>
                         </DropdownMenuItem>

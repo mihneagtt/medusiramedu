@@ -10,7 +10,8 @@ export type FieldType =
   | "toggle"
   | "combobox"
   | "image"
-  | "signature";
+  | "signature"
+  | "number";
 
 // Base interface for all field configurations
 interface BaseFieldConfig {
@@ -39,6 +40,11 @@ interface TextAreaFieldConfig extends BaseFieldConfig {
 
 interface EmailFieldConfig extends BaseFieldConfig, MultiFieldConfig {
   type: "email";
+  defaultValue: string;
+}
+
+interface NumberFieldConfig extends BaseFieldConfig, MultiFieldConfig {
+  type: "number";
   defaultValue: string;
 }
 
@@ -85,7 +91,8 @@ export type FieldConfig =
   | ToggleFieldConfig
   | ComboboxFieldConfig
   | ImageUploadFieldConfig
-  | SignatureFieldConfig;
+  | SignatureFieldConfig
+  | NumberFieldConfig;
 
 // Form fields configuration
 export interface FormFields {

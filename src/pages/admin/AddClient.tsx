@@ -3,6 +3,7 @@ import ReusableForm from "@/components/ui/custom components/ReusableForm";
 import * as z from "zod";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/Constants";
 
 const AddClient = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,7 +110,7 @@ const AddClient = () => {
 
       // Success - redirect to clients list
       alert("Client a fost adăugat cu succes");
-      navigate("/clients");
+      navigate(ROUTES.CLIENTS);
     } catch (error) {
       console.error("Error adding client:", error);
       setError(

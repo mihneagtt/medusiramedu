@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,63 +17,84 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreVertical, Edit, Trash, Eye, Package } from "lucide-react";
+import {
+  Search,
+  MoreVertical,
+  Edit,
+  Trash,
+  Eye,
+  Package,
+  AlertTriangle,
+  CreditCard,
+} from "lucide-react";
 import { Link } from "react-router";
 import { ROUTES } from "@/Constants";
+import { api_GET, api_DELETE } from "@/utilities";
+import { IPart, IStock } from "@/types/entitites";
 
-// Part type definition
-interface IPart {
-  id: string;
-  serialNumber: string;
+// Part type definition with price field
+interface IPartQuantity {
+  partNumber: string;
   name: string;
+  description: string;
+  price: number;
   quantity: number;
-  compatibleWith?: string[];
 }
 
 const PartsList: React.FC = () => {
-  // Sample parts data - replace with your actual data
-  const defaultParts: IPart[] = [
-    {
-      id: "1",
-      serialNumber: "P-2023-001",
-      name: "Filtru de aer",
-      quantity: 15,
-      compatibleWith: ["XR-2023-001", "XR-2023-002"],
-    },
-    {
-      id: "2",
-      serialNumber: "P-2023-002",
-      name: "Placă electronică",
-      quantity: 5,
-      compatibleWith: ["XR-2023-003"],
-    },
-    {
-      id: "3",
-      serialNumber: "P-2023-003",
-      name: "Senzor temperatură",
-      quantity: 20,
-      compatibleWith: ["XR-2023-001", "XR-2023-003", "XR-2023-004"],
-    },
-    {
-      id: "4",
-      serialNumber: "P-2023-004",
-      name: "Compresor",
-      quantity: 2,
-      compatibleWith: ["XR-2023-002", "XR-2023-005"],
-    },
-    {
-      id: "5",
-      serialNumber: "P-2023-005",
-      name: "Panou control",
-      quantity: 8,
-      compatibleWith: ["XR-2023-001", "XR-2023-005"],
-    },
-  ];
-
-  const allParts = defaultParts;
-
-  const [parts, setParts] = useState(allParts);
+  const [parts, setParts] = useState<IPartQuantity[]>([]);
+  const [allParts, setAllParts] = useState<IPartQuantity[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch parts data from API
+  useEffect(() => {
+    const fetchParts = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Fetch parts data
+        const partsData = await api_GET("Part/all");
+        const parts = JSON.parse(partsData);
+
+        // Fetch stock data
+        const stockData = await api_GET("Stock/all");
+        const stock = JSON.parse(stockData);
+
+        // Map stock quantities to parts
+        const stockMap = new Map();
+        stock.forEach((stock: IStock) => {
+          stockMap.set(stock.partNumber, stock.quantity);
+        });
+
+        // Combine data
+        const combinedParts: IPartQuantity[] = parts.map((part: IPart) => ({
+          partNumber: part.partNumber,
+          name: part.description || "Unnamed Part", // Using description as name
+          description: part.description,
+          price: part.price,
+          quantity: stockMap.get(part.partNumber) || 0,
+        }));
+
+        setParts(combinedParts);
+        setAllParts(combinedParts);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching parts:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "A apărut o eroare la încărcarea pieselor"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchParts();
+  }, []);
 
   const handleSearch: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const term = e.target.value.toLowerCase();
@@ -82,13 +103,39 @@ const PartsList: React.FC = () => {
     if (term) {
       const filtered = allParts.filter(
         (part) =>
-          part.serialNumber.toLowerCase().includes(term) ||
-          part.name.toLowerCase().includes(term)
+          part.partNumber.toLowerCase().includes(term) ||
+          part.name.toLowerCase().includes(term) ||
+          part.description.toLowerCase().includes(term)
       );
       setParts(filtered);
     } else {
       setParts(allParts);
     }
+  };
+
+  const handleDeletePart = async (partNumber: string) => {
+    if (window.confirm("Sigur doriți să ștergeți această piesă?")) {
+      try {
+        // Delete the part
+        await api_DELETE(`Part/${partNumber}`);
+
+        // Update the local state
+        setParts(parts.filter((part) => part.partNumber !== partNumber));
+        setAllParts(allParts.filter((part) => part.partNumber !== partNumber));
+
+        alert("Piesa a fost ștearsă cu succes!");
+      } catch (err) {
+        console.error("Error deleting part:", err);
+        alert("A apărut o eroare la ștergerea piesei. Încercați din nou.");
+      }
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("ro-RO", {
+      style: "currency",
+      currency: "RON",
+    }).format(price);
   };
 
   return (
@@ -113,6 +160,15 @@ const PartsList: React.FC = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="mb-4 p-4 bg-red-900/50 border border-red-800 text-red-100 rounded-md">
+          <div className="flex items-start">
+            <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-md border border-slate-800 overflow-hidden">
         <Table>
           <TableHeader className="bg-slate-800">
@@ -120,25 +176,43 @@ const PartsList: React.FC = () => {
               <TableHead className="text-slate-200">Serie</TableHead>
               <TableHead className="text-slate-200">Nume</TableHead>
               <TableHead className="text-slate-200">Cantitate</TableHead>
+              <TableHead className="text-slate-200">Preț</TableHead>
               <TableHead className="text-slate-200 text-right">
                 Actiuni
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {parts.length > 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="h-24 text-center text-slate-400"
+                >
+                  Se încarcă piesele...
+                </TableCell>
+              </TableRow>
+            ) : parts.length > 0 ? (
               parts.map((part) => (
                 <TableRow
-                  key={part.id}
+                  key={part.partNumber}
                   className="border-slate-800 hover:bg-slate-800/50"
                 >
                   <TableCell className="font-medium">
-                    {part.serialNumber}
+                    {part.partNumber}
                   </TableCell>
                   <TableCell>{part.name}</TableCell>
-                  <TableCell className="flex items-center">
-                    <Package className="h-4 w-4 mr-2 text-slate-400" />
-                    {part.quantity}
+                  <TableCell>
+                    <div className="flex items-center">
+                      <Package className="h-4 w-4 mr-2 text-slate-400" />
+                      <span>{part.quantity}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <CreditCard className="h-4 w-4 mr-2 text-slate-400" />
+                      <span>{formatPrice(part.price)}</span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -159,7 +233,7 @@ const PartsList: React.FC = () => {
                         <DropdownMenuSeparator className="bg-slate-700" />
                         <DropdownMenuItem className="focus:bg-slate-700">
                           <Link
-                            to={`/parts/${part.id}`}
+                            to={`/parts/${part.partNumber}`}
                             className="flex items-center w-full"
                           >
                             <Eye className="mr-2 h-4 w-4" />
@@ -168,14 +242,17 @@ const PartsList: React.FC = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem className="focus:bg-slate-700">
                           <Link
-                            to={`/parts/${part.id}/edit`}
+                            to={`/parts/${part.partNumber}/edit`}
                             className="flex items-center w-full"
                           >
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Editare</span>
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="focus:bg-slate-700 text-red-400 focus:text-red-400">
+                        <DropdownMenuItem
+                          className="focus:bg-slate-700 text-red-400 focus:text-red-400"
+                          onClick={() => handleDeletePart(part.partNumber)}
+                        >
                           <Trash className="mr-2 h-4 w-4" />
                           <span>Sterge</span>
                         </DropdownMenuItem>
@@ -187,7 +264,7 @@ const PartsList: React.FC = () => {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="h-24 text-center text-slate-400"
                 >
                   Nu s-au găsit piese.

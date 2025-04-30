@@ -14,6 +14,7 @@ import Reports from "./pages/Reports";
 import ClientDetails from "./pages/ClientDetails";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import LoginScreen from "./pages/Login";
+import EquipmentDetails from "./pages/EquipmentDetails";
 
 const CLIENT_ID =
   "364505970546-l0ca5j0vqiltlgm23rvl75h34agl0daj.apps.googleusercontent.com";
@@ -35,6 +36,10 @@ const App = () => {
             <Route path={ROUTES.CLIENTS} element={<Clients />} />
             <Route path={`${ROUTES.CLIENTS}/:id`} element={<ClientDetails />} />
             <Route path={ROUTES.EQUIPMENT} element={<Equipment />} />
+            <Route
+              path={`${ROUTES.EQUIPMENT}/:id`}
+              element={<EquipmentDetails />}
+            />
             <Route path={ROUTES.PARTS} element={<Parts />} />
             <Route path={ROUTES.REPORTS} element={<Reports />} />
           </Routes>

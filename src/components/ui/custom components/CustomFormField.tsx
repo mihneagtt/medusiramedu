@@ -89,6 +89,7 @@ const CustomFormField: React.FC<FormFieldComponentProps> = ({
   switch (fieldConfig.type) {
     case "text":
     case "email":
+    case "number":
       if (fieldConfig.multiple) {
         return (
           <FormField
