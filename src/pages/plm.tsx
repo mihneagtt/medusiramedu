@@ -610,7 +610,7 @@ const PLM = () => {
       addButtonLabel: "Adaugă procedură suplimentară",
     },
     replacedParts: {
-      type: "combobox",
+      type: "quantityCombobox",
       label: "Piese înlocuite",
       placeholder: "Selectați piesa",
       defaultValue: "",

@@ -39,3 +39,9 @@ export interface IStock {
   partNumber: string;
   quantity: number;
 }
+
+export interface IStandardProcedure {
+  procedureId: number;
+  name: string;
+  description: string;
+}

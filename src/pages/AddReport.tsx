@@ -14,7 +14,12 @@ import ReusableForm from "@/components/ui/custom components/ReusableForm";
 import logo from "../assets/logo-black.jpg";
 import * as z from "zod";
 import { api_GET } from "@/utilities";
-import { IClient, IEquipment, IPart } from "@/types/entitites";
+import {
+  IClient,
+  IEquipment,
+  IPart,
+  IStandardProcedure,
+} from "@/types/entitites";
 
 // Create styles for PDF
 const styles = StyleSheet.create({
@@ -112,7 +117,11 @@ export interface ServiceReportData {
   beforePhotos?: string[];
   standardProcedures: string[];
   additionalProcedures?: string[];
-  replacedParts?: string[];
+  replacedParts?: {
+    partNumber: string;
+    description: string;
+    quantity: number;
+  }[];
 
   // Work Metrics
   workHours: number;
@@ -130,12 +139,6 @@ export interface ServiceReportData {
   createdAt?: string;
   updatedAt?: string;
   status?: "draft" | "submitted" | "approved" | "completed";
-}
-
-interface IStandardProcedure {
-  procedureId: string;
-  name: string;
-  description: string;
 }
 
 // PDF Document component
@@ -315,7 +318,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
               </View>
               {data.replacedParts.map((part) => (
                 <View
-                  key={part}
+                  key={part.partNumber}
                   style={{
                     flexDirection: "row",
                     fontSize: 12,
@@ -329,9 +332,11 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
                       borderRight: "1px solid black",
                     }}
                   >
-                    {part} (1)
+                    {part.description} ({part.quantity})
                   </Text>
-                  <Text style={{ padding: "5px", width: "50%" }}>{part}</Text>
+                  <Text style={{ padding: "5px", width: "50%" }}>
+                    {part.partNumber}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -532,7 +537,14 @@ const AddReport = () => {
       message: "Selectați cel puțin o procedură standard",
     }),
     additionalProcedures: z.array(z.string()).optional(),
-    replacedParts: z.array(z.string()).optional(),
+    replacedParts: z
+      .array(
+        z.object({
+          value: z.string(),
+          quantity: z.number().default(1),
+        })
+      )
+      .optional(),
     workHours: z
       .string()
       .regex(/^\d+(\.\d{1,2})?$/, {
@@ -572,14 +584,13 @@ const AddReport = () => {
   const partOptions = parts.map((part) => ({
     value: part.partNumber,
     label: `${part.description} - ${part.price} RON`,
+    quantity: 5,
   }));
 
   const procedureOptions = standardProcedures.map((proc) => ({
-    value: proc.procedureId,
+    value: `${proc.procedureId}`,
     label: proc.name,
   }));
-
-  console.log(procedureOptions);
 
   const formFields: FormFields = {
     client: {
@@ -635,7 +646,7 @@ const AddReport = () => {
       addButtonLabel: "Adaugă procedură suplimentară",
     },
     replacedParts: {
-      type: "combobox",
+      type: "quantityCombobox",
       label: "Piese înlocuite",
       placeholder: "Selectați piesa",
       defaultValue: "",
@@ -645,13 +656,13 @@ const AddReport = () => {
       options: partOptions,
     },
     workHours: {
-      type: "text",
+      type: "number",
       label: "Timp de lucru (ore)",
       placeholder: "Ex: 2.5",
       defaultValue: "",
     },
     travelDistance: {
-      type: "text",
+      type: "number",
       label: "Km deplasare",
       placeholder: "Introduceți numărul de kilometri",
       defaultValue: "",
@@ -689,14 +700,20 @@ const AddReport = () => {
     const selectedEquipmentData = equipment.find(
       (e) => e.serialNumber === data.equipment
     );
-    // const selectedProcedures = data?.standardProcedures? .map((procId) => {
-    //   const proc = standardProcedures.find((p) => p.procedureId === procId);
-    //   return proc ? proc.name : procId;
-    // });
+    const selectedProcedures = data.standardProcedures.map((procId) => {
+      const proc = standardProcedures.find(
+        (p) => p.procedureId.toString() === procId
+      );
+      return proc ? proc.name : procId;
+    });
     const selectedParts = data.replacedParts
-      ? data.replacedParts.map((partId) => {
-          const part = parts.find((p) => p.partNumber === partId);
-          return part ? part.description : partId;
+      ? data.replacedParts.map((part) => {
+          const partInfo = parts.find((p) => p.partNumber === part.value);
+          return {
+            partNumber: part.value,
+            description: partInfo ? partInfo.description : part.value,
+            quantity: part.quantity || 1,
+          };
         })
       : [];
 
@@ -707,7 +724,7 @@ const AddReport = () => {
       contractNumber: selectedClientData?.contractNumber,
       equipmentName: selectedEquipmentData?.description,
       serialNumber: selectedEquipmentData?.serialNumber,
-      standardProcedures: [],
+      standardProcedures: selectedProcedures,
       replacedParts: selectedParts,
     };
 

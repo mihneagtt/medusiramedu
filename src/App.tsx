@@ -15,6 +15,7 @@ import ClientDetails from "./pages/ClientDetails";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import LoginScreen from "./pages/Login";
 import EquipmentDetails from "./pages/EquipmentDetails";
+import PLM from "./pages/plm";
 
 const CLIENT_ID =
   "364505970546-l0ca5j0vqiltlgm23rvl75h34agl0daj.apps.googleusercontent.com";
@@ -26,6 +27,7 @@ const App = () => {
         <Navigation />
         <main className="container mx-auto px-4 py-8">
           <Routes>
+            <Route path="/test" element={<PLM />} />
             <Route path="/" element={<div>Dashboard</div>} />
             <Route path={ROUTES.LOGIN} element={<LoginScreen />} />
             <Route path={ROUTES.ADD_CLIENT} element={<AddClient />} />

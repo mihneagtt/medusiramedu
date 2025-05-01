@@ -9,6 +9,7 @@ export type FieldType =
   | "date"
   | "toggle"
   | "combobox"
+  | "quantityCombobox"
   | "image"
   | "signature"
   | "number";
@@ -70,6 +71,16 @@ interface ComboboxFieldConfig extends BaseFieldConfig, MultiFieldConfig {
     label: string;
   }>;
 }
+interface QuantityComboboxFieldConfig
+  extends BaseFieldConfig,
+    MultiFieldConfig {
+  type: "quantityCombobox";
+  defaultValue: string | number;
+  options: Array<{
+    value: string;
+    label: string;
+  }>;
+}
 
 interface ImageUploadFieldConfig extends BaseFieldConfig {
   type: "image";
@@ -92,7 +103,8 @@ export type FieldConfig =
   | ComboboxFieldConfig
   | ImageUploadFieldConfig
   | SignatureFieldConfig
-  | NumberFieldConfig;
+  | NumberFieldConfig
+  | QuantityComboboxFieldConfig;
 
 // Form fields configuration
 export interface FormFields {

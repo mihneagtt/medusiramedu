@@ -72,7 +72,7 @@ const CustomFormField: React.FC<FormFieldComponentProps> = ({
       if (context) {
         context.lineWidth = 2;
         context.lineCap = "round";
-        context.strokeStyle = "#FFFFFF";
+        context.strokeStyle = "#000";
       }
     }
   };
@@ -217,7 +217,6 @@ const CustomFormField: React.FC<FormFieldComponentProps> = ({
           )}
         />
       );
-
     case "date":
       return (
         <FormField
@@ -265,7 +264,6 @@ const CustomFormField: React.FC<FormFieldComponentProps> = ({
           )}
         />
       );
-
     case "toggle":
       return (
         <FormField
@@ -514,6 +512,270 @@ const CustomFormField: React.FC<FormFieldComponentProps> = ({
           )}
         />
       );
+    case "quantityCombobox":
+      if (fieldConfig.multiple) {
+        return (
+          <FormField
+            control={form.control}
+            name={field}
+            render={({ field: fieldProps }) => {
+              const values = Array.isArray(fieldProps.value)
+                ? fieldProps.value
+                : [fieldProps.value || { value: "", quantity: 1 }];
+              const addField = () => {
+                if (
+                  fieldConfig.maxFields &&
+                  values.length >= fieldConfig.maxFields
+                ) {
+                  return;
+                }
+                fieldProps.onChange([...values, { value: "", quantity: 1 }]);
+              };
+
+              const removeField = (index: number) => {
+                const newValues = values.filter((_, i) => i !== index);
+                fieldProps.onChange(
+                  newValues.length > 0
+                    ? newValues
+                    : [{ value: "", quantity: 1 }]
+                );
+              };
+
+              const updateField = (
+                index: number,
+                item: { value: string; quantity?: number }
+              ) => {
+                const newValues = [...values];
+                newValues[index] = item;
+                fieldProps.onChange(newValues);
+              };
+
+              return (
+                <FormItem>
+                  <FormLabel className="text-slate-200">
+                    {fieldConfig.label}
+                  </FormLabel>
+                  <div className="space-y-2">
+                    {values.map((item, index) => (
+                      <div key={index} className="flex gap-2">
+                        <FormControl className="flex-1">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "w-full justify-between bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600",
+                                    !item.value && "text-slate-400"
+                                  )}
+                                >
+                                  {item.value
+                                    ? fieldConfig.options.find(
+                                        (option) => option.value === item.value
+                                      )?.label
+                                    : fieldConfig.placeholder}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-[var(--radix-popover-trigger-width)] p-0 bg-slate-800"
+                              align="start"
+                              sideOffset={4}
+                            >
+                              <Command className="bg-slate-800">
+                                <CommandInput
+                                  placeholder={`Cauta ${fieldConfig.label.toLowerCase()}...`}
+                                  className="h-9 bg-slate-800 text-slate-100"
+                                />
+                                <CommandEmpty className="py-2 text-slate-400">
+                                  Nu s-a gasit niciun rezultat.
+                                </CommandEmpty>
+                                <CommandGroup className="max-h-60 overflow-auto">
+                                  <CommandList>
+                                    {fieldConfig.options.map((option) => (
+                                      <CommandItem
+                                        key={option.value}
+                                        value={option.label}
+                                        onSelect={() => {
+                                          updateField(index, {
+                                            value: option.value,
+                                            quantity: item.quantity || 1,
+                                          });
+                                        }}
+                                        className="text-slate-100 hover:bg-slate-700 hover:text-slate-100"
+                                      >
+                                        <PopoverClose className="w-full h-full flex">
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              item.value === option.value
+                                                ? "opacity-100"
+                                                : "opacity-0"
+                                            )}
+                                          />
+                                          {option.label}
+                                        </PopoverClose>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandList>
+                                </CommandGroup>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </FormControl>
+
+                        <Input
+                          type="number"
+                          className="w-24 bg-slate-700 border-slate-600 text-slate-100"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const quantity = e.target.value
+                              ? parseInt(e.target.value)
+                              : undefined;
+                            updateField(index, {
+                              value: item.value,
+                              quantity: quantity,
+                            });
+                          }}
+                        />
+
+                        {values.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="bg-slate-700 hover:bg-slate-600 text-slate-200"
+                            onClick={() => removeField(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    {(!fieldConfig.maxFields ||
+                      values.length < fieldConfig.maxFields) && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="bg-slate-700 text-slate-200"
+                        onClick={addField}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        {fieldConfig.addButtonLabel ||
+                          `Adauga ${fieldConfig.label.toLowerCase()}`}
+                      </Button>
+                    )}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
+        );
+      }
+      return (
+        <FormField
+          control={form.control}
+          name={field}
+          render={({ field: fieldProps }) => {
+            const value = fieldProps.value || { value: "", quantity: 1 };
+
+            return (
+              <FormItem className="flex flex-col">
+                <FormLabel className="text-slate-200">
+                  {fieldConfig.label}
+                </FormLabel>
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl className="flex-1">
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600",
+                            !value.value && "text-slate-400"
+                          )}
+                        >
+                          {value.value
+                            ? fieldConfig.options.find(
+                                (option) => option.value === value.value
+                              )?.label
+                            : fieldConfig.placeholder}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] p-0 bg-slate-800"
+                      align="start"
+                      sideOffset={4}
+                    >
+                      <Command className="bg-slate-800">
+                        <CommandInput
+                          placeholder={`Cauta ${fieldConfig.label.toLowerCase()}...`}
+                          className="h-9 bg-slate-800 text-slate-100"
+                        />
+                        <CommandEmpty className="py-2 text-slate-400">
+                          Nu s-a gasit niciun rezultat.
+                        </CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-auto">
+                          <CommandList>
+                            {fieldConfig.options.map((option) => (
+                              <CommandItem
+                                key={option.value}
+                                value={option.label}
+                                onSelect={() => {
+                                  fieldProps.onChange({
+                                    value: option.value,
+                                    quantity: value.quantity || 1,
+                                  });
+                                }}
+                                className="text-slate-100 hover:bg-slate-700 hover:text-slate-100"
+                              >
+                                <PopoverClose className="w-full h-full flex">
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      value.value === option.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {option.label}
+                                </PopoverClose>
+                              </CommandItem>
+                            ))}
+                          </CommandList>
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+
+                  <Input
+                    type="number"
+                    className="w-24 bg-slate-700 border-slate-600 text-slate-100"
+                    value={value.quantity}
+                    onChange={(e) => {
+                      const quantity = e.target.value
+                        ? parseInt(e.target.value)
+                        : undefined;
+                      fieldProps.onChange({
+                        value: value.value,
+                        quantity: quantity,
+                      });
+                    }}
+                  />
+                </div>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
+        />
+      );
     case "image":
       return (
         <FormField
@@ -754,7 +1016,7 @@ const CustomFormField: React.FC<FormFieldComponentProps> = ({
                         <div className="relative border border-slate-600 rounded-lg bg-slate-800 p-4">
                           <canvas
                             ref={canvasRef}
-                            className="w-full h-40 touch-none bg-slate-700 rounded-md"
+                            className="w-full h-40 touch-none bg-slate-100 rounded-md"
                             onMouseDown={startDrawing}
                             onMouseMove={draw}
                             onMouseUp={stopDrawing}
