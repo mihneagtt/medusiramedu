@@ -437,7 +437,7 @@ const ServiceReportPDF = ({ data }: { data: ServiceReportData }) => (
 );
 
 // Modified AddReport component with PDF generation and API data
-const AddReport = () => {
+const AddReport: React.FC = () => {
   const [formData, setFormData] = useState<ServiceReportData | null>(null);
   const [clients, setClients] = useState<IClient[]>([]);
   const [equipment, setEquipment] = useState<IEquipment[]>([]);
