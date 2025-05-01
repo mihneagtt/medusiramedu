@@ -7,7 +7,6 @@ import {
   View,
   StyleSheet,
   Image,
-  PDFViewer,
 } from "@react-pdf/renderer";
 import { FormFields } from "@/types/form";
 import ReusableForm from "@/components/ui/custom components/ReusableForm";
@@ -755,12 +754,12 @@ const AddReport: React.FC = () => {
 
       {formData && (
         <>
-          <div className="mt-8">
+          {/* <div className="mt-8">
             <h2 className="text-xl font-bold mb-4">Previzualizare PDF</h2>
             <PDFViewer width={"100%"} height={"700px"}>
               <ServiceReportPDF data={formData} />
             </PDFViewer>
-          </div>
+          </div> */}
 
           <div className="mt-4 mb-8">
             <PDFDownloadLink
